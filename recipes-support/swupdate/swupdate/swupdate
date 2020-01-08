@@ -30,7 +30,7 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 
 DESC="swupdate"
 NAME="swupdate"
-DAEMON=/usr/lib/swupdate/swupdate.sh
+DAEMON=/etc/init.d/swupdate.sh
 PIDFILE=/var/run/$NAME.pid
 
 . /etc/init.d/functions || exit 1

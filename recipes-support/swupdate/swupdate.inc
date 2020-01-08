@@ -38,26 +38,25 @@ FILES_${PN}-client = "${bindir}/swupdate-client"
 FILES_${PN}-lua += "${libdir}/lua/"
 FILES_${PN}-progress = " \
     ${bindir}/swupdate-progress \
-    ${systemd_system_unitdir}/swupdate-progress.service \
-    ${libdir}/swupdate/conf.d/90-start-progress \
+    ${@bb.utils.contains('DISTRO_FEATURES','systemd','${systemd_system_unitdir}/swupdate-progress.service','${sysconfdir}/swupdate/conf.d/90-start-progress',d) \
 "
 FILES_${PN}-usb = " \
     ${sysconfdir}/udev/rules.d/swupdate-usb.rules \
-    ${systemd_system_unitdir}/swupdate-usb@.service \
+    ${@bb.utils.contains('DISTRO_FEATURES','systemd','${systemd_system_unitdir}/swupdate-usb@.service','',d) \
 "
 FILES_${PN}-tools-hawkbit = " \
     ${bindir}/swupdate-hawkbitcfg \
     ${bindir}/swupdate-sendtohawkbit \
 "
 FILES_${PN} += " \
-    ${libdir}/tmpfiles.d \
-    ${libdir}/swupdate/* \
-    ${systemd_system_unitdir}/swupdate.socket \
-    ${systemd_system_unitdir}/swupdate.service \
+    ${sysconfdir}/tmpfiles.d \
+    ${sysconfdir}/swupdate/* \
     ${sysconfdir}/init.d/* \
+    ${@bb.utils.contains('DISTRO_FEATURES','systemd','${systemd_system_unitdir}/swupdate.socket','',d) \
+    ${@bb.utils.contains('DISTRO_FEATURES','systemd','${systemd_system_unitdir}/swupdate.service','',d) \
 "
 FILES_${PN}-www = " \
-    ${libdir}/swupdate/conf.d/*mongoose* \
+    ${sysconfdir}/swupdate/conf.d/*mongoose* \
     /www/* \
 "
 
@@ -205,12 +204,13 @@ do_install () {
     fi
     install -d ${D}${sysconfdir}/init.d
     install -m 755 ${WORKDIR}/swupdate ${D}${sysconfdir}/init.d
-    # shell based configuration loader allows to place code snippets into this folder
-    install -d ${D}${libdir}/swupdate/conf.d
-    install -m 755 ${WORKDIR}/swupdate.sh ${D}${libdir}/swupdate
+    install -m 755 ${WORKDIR}/swupdate.sh ${D}${sysconfdir}/init.d
+
+    install -d ${D}${sysconfdir}/swupdate/conf.d
     if ${SWUPDATE_MONGOOSE}; then
-        install -m 644 ${WORKDIR}/10-mongoose-args ${D}${libdir}/swupdate/conf.d/
+        install -m 644 ${WORKDIR}/10-mongoose-args ${D}${sysconfdir}/swupdate/conf.d/
     fi
+
     install -d ${D}${systemd_unitdir}/system
     install -m 644 ${WORKDIR}/swupdate.service ${D}${systemd_system_unitdir}
     install -m 644 ${WORKDIR}/swupdate.socket.tmpl ${D}${systemd_system_unitdir}/swupdate.socket
@@ -220,15 +220,16 @@ do_install () {
     install -m 644 ${WORKDIR}/swupdate-usb@.service ${D}${systemd_system_unitdir}
     install -m 644 ${WORKDIR}/swupdate-progress.service ${D}${systemd_system_unitdir}
     if ${@bb.utils.contains('DISTRO_FEATURES','systemd','true','false',d)}; then
-        install -d ${D}${libdir}/tmpfiles.d
-        install -m 0644 ${WORKDIR}/tmpfiles-swupdate.conf ${D}${libdir}/tmpfiles.d/swupdate.conf
+        install -d ${D}${sysconfdir}/tmpfiles.d
+        install -m 0644 ${WORKDIR}/tmpfiles-swupdate.conf ${D}${sysconfdir}/tmpfiles.d/swupdate.conf
         install -d ${D}${sysconfdir}/udev/rules.d
         install -m 0644 ${WORKDIR}/swupdate-usb.rules ${D}${sysconfdir}/udev/rules.d/
     else
         # in case of systemd there is a service file, for sysv init we need to start it as well
-        install -m 0644 ${WORKDIR}/90-start-progress ${D}${libdir}/swupdate/conf.d/
+        install -m 644 ${WORKDIR}/90-start-progress ${D}${sysconfdir}/swupdate/conf.d/
     fi
 }
+
 INITSCRIPT_NAME = "swupdate"
 INITSCRIPT_PARAMS = "defaults 70"
 SYSTEMD_PACKAGES = "${PN} ${PN}-progress ${PN}-usb"
